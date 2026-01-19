@@ -34,7 +34,7 @@ button{padding:6px 10px;border:none;border-radius:4px;cursor:pointer}
 <body>
 
 <h2>📋 QUẢN LÝ HỤI</h2>
-<div class="sub">Hụi 5.000.000 đ Nữa tháng ( Dây 3 )</div>
+<div class="sub">Hụi 5.000.000 đ / nữa tháng ( Dây 3 )</div>
 <div class="chuHui">Chủ hụi: Nguyễn Hằng Ni</div>
 
 
@@ -56,6 +56,7 @@ button{padding:6px 10px;border:none;border-radius:4px;cursor:pointer}
 <button class="them" onclick="themNguoi()" id="btnThem">➕ Thêm người</button>
 <button class="ky" onclick="xuatPDF()">📤 Xuất PDF gửi Zalo</button>
 <button class="xoa" onclick="resetHui()" id="btnReset">♻ Reset dây hụi</button>
+<button class="ky" onclick="undoXoa()">↩ Undo xoá</button>
 
 <table>
 <thead>
@@ -83,7 +84,9 @@ let data = {
   ngayGiao:{},
   tongHot:{},
   danhSach:[]
+  
 };
+let lichSuXoa = []; // ✅ lưu lịch sử xoá nhiều lần
 
 function luuDuLieu(){
   localStorage.setItem("huiData",JSON.stringify(data));
@@ -187,7 +190,11 @@ ngaygiao.value = data.ngayGiao[data.ky] || "";
  ${ls?.daDong?"✔":""}
 </td>
 <td>${ls?ls.dong.toLocaleString()+" đ":""}</td>
-<td>${ls?.boTham?ls.boTham.toLocaleString()+" đ":""}</td>
+<td onclick="suaBoTham(${i})"
+    style="cursor:pointer;color:#2980b9;font-weight:bold">
+  ${ls?.boTham ? ls.boTham.toLocaleString() + " đ" : "—"}
+</td>
+
 <td>
 ${ls?.daHot?"🔥 ĐÃ HỐT":daChet(n)?"☠ CHƯNG CHẾT":"✔ CHƯNG SỐNG"}
 ${!ls?.daHot && !daChet(n)?`<br><button class="hot" onclick="hotHui(${i})">Hốt</button>`:""}
@@ -207,7 +214,10 @@ luuDuLieu()
 </select>
 </td>
 
-<td><button class="xoa" onclick="data.danhSach.splice(${i},1);luuDuLieu();veBang()">❌</button></td>
+<td>
+<button class="xoa" onclick="xoaNguoi(${i})">❌</button>
+</td>
+
 </tr>`; 
   });
   bang.innerHTML=html;
@@ -371,7 +381,65 @@ ${thongTinChuHuiQR()}
   w.document.close();
 }
 
+function suaBoTham(i){
+  let ky = data.ky;
+  let ls = data.danhSach[i].lichSu[ky];
 
+  // Chưa hốt thì không cho sửa
+  if(!ls || !ls.daHot){
+    alert("❌ Người này chưa hốt, không có tiền bỏ thăm để sửa");
+    return;
+  }
+
+  let soMoi = prompt(
+    "Nhập lại số tiền bỏ thăm:",
+    ls.boTham
+  );
+
+  if(soMoi === null) return; // bấm huỷ
+
+  soMoi = parseInt(soMoi);
+  if(isNaN(soMoi) || soMoi < 0){
+    alert("❌ Số tiền không hợp lệ");
+    return;
+  }
+
+  // cập nhật tiền bỏ thăm
+  ls.boTham = soMoi;
+
+  // tính lại tổng tiền hốt
+  let tong = 0;
+  data.danhSach.forEach((n,idx)=>{
+    let l = n.lichSu[ky];
+    if(!l) return;
+
+    if(idx !== i){
+      if(!daChet(n)) l.dong = TIEN_HUI - soMoi;
+      else l.dong = TIEN_HUI;
+      tong += l.dong;
+    }
+  });
+
+  data.tongHot[ky] = tong;
+
+  luuDuLieu();
+  veBang();
+}
+ function xoaNguoi(i){
+  if(!confirm("Xoá người này?")) return;
+  lichSuXoa.push(JSON.stringify(data.danhSach));
+  data.danhSach.splice(i,1);
+  luuDuLieu(); veBang();
+}
+
+function undoXoa(){
+  if(lichSuXoa.length===0){
+    alert("Không còn lịch sử để hoàn tác");
+    return;
+  }
+  data.danhSach = JSON.parse(lichSuXoa.pop());
+  luuDuLieu(); veBang();
+}
 function resetHui(){
   if(!confirm("Reset toàn bộ dây hụi?")) return;
   data={
@@ -388,10 +456,9 @@ function resetHui(){
 
 taiDuLieu();
 veBang();
+ 
+
 </script>
 
 </body>
 </html>
-
-
-
