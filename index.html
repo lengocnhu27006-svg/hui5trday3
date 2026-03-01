@@ -138,6 +138,15 @@ function tickDong(i){
 
 function hotHui(i){
   let ky=data.ky;
+// ✅ CHẶN HỐT LẦN 2 TRONG CÙNG 1 KỲ
+  let daCoNguoiHot = data.danhSach.some(n => 
+    n.lichSu[ky]?.daHot
+  );
+
+  if(daCoNguoiHot){
+    alert("❌ Kỳ này đã có người hốt rồi!");
+    return;
+  }
   let bo=parseInt(prompt("Nhập tiền bỏ thăm:"));
   if(isNaN(bo)||bo<0) return;
 
@@ -462,3 +471,4 @@ veBang();
 
 </body>
 </html>
+
